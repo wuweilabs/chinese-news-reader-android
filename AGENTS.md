@@ -26,10 +26,20 @@ server/database to run. The standard build/test/lint commands live in `.github/w
   e.g. `./gradlew :libanki:testDebugUnitTest --tests "com.ichi2.anki.libanki.SchedulerTest"`).
 - Lint (full CI command is heavy):
   `./gradlew lintPlayDebug :api:lintDebug :libanki:lintDebug ktLintCheck lintVitalFullRelease lint-rules:test`.
-- **Running the GUI app:** the cloud VM has **no KVM / hardware virtualization**, so an Android
-  emulator (and therefore on-device/instrumented tests like `jacocoAndroidTestReport` and any GUI
-  walkthrough) is **not viable** here. Demonstrate app behavior with the JVM/Robolectric unit tests
-  in `:libanki` (collection/notes/scheduler) which exercise the real spaced-repetition engine.
+- **Running the GUI app / emulator:** the cloud VM has **no KVM / hardware virtualization**
+  (`emulator -accel-check` reports `/dev/kvm is not found`). An x86_64 AVD *does* still start
+  **headless** under QEMU's software CPU emulation (TCG) — boots to `sys.boot_completed=1`, and the
+  freshly-built debug APK installs and launches (verified: `IntroductionActivity` / `DeckPicker`).
+  **However it is impractically slow:** cold first boot ~8–9 min (warm boot ~3 min) and the system
+  throws frequent `SystemUI`/`Pixel Launcher isn't responding` ANRs, so it is **not suitable for
+  routine instrumented (`jacocoAndroidTestReport`) or interactive GUI testing**. Prefer the
+  JVM/Robolectric unit tests in `:libanki` (collection/notes/scheduler) for normal verification.
+  - To start it anyway (install `emulator` + `system-images;android-35;google_apis;x86_64`, create AVD `test_avd`):
+    ```bash
+    "$ANDROID_HOME"/emulator/emulator @test_avd -no-window -no-audio -no-snapshot -no-accel \
+      -gpu swiftshader_indirect -no-boot-anim &
+    adb wait-for-device   # then poll: adb shell getprop sys.boot_completed
+    ```
 
 ### Localization tool (auxiliary, `tools/localization`)
 - Node tool using **yarn 4** via corepack. Install with `corepack yarn install` inside the folder.
